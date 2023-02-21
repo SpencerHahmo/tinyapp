@@ -5,10 +5,7 @@ const PORT = 8080;
 const generateRandomString = () => {
   const characters = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let randomString = "";
-  for (let i = 0; i < 6; i++) {
-    randomString += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  
+  while (randomString.length < 6) randomString += characters.charAt(Math.floor(Math.random() * characters.length));
   return randomString;
 };
 
@@ -35,7 +32,7 @@ app.post("/urls", (req, res) => {
   const newShortURL = generateRandomString();
   const newLongURL = req.body.longURL;
   urlDatabase[newShortURL] = newLongURL;
-  console.log(urlDatabase);
+  // console.log(urlDatabase); // Testing to see if the database is updated
   res.redirect(`/urls/${newShortURL}`);
 });
 
