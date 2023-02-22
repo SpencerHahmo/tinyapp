@@ -25,11 +25,8 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  // console.log(username); // Making sure the username variable gets updated on a new login
-  res.cookie('username', username);
-  res.redirect("/urls");
+app.get("/hello", (req, res) => {
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/urls", (req, res) => {
@@ -37,8 +34,16 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  // console.log(username); // Making sure the username variable gets updated on a new login
+  res.cookie('username', username);
+  res.redirect("/urls");
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
 });
 
 app.get("/urls.json", (req, res) => {
