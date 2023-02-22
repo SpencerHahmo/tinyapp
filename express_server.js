@@ -21,6 +21,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -29,14 +42,39 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+app.get("/urls.json", (req, res) => {
+  res.json(urlDatabase);
+});
+
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
 
+app.post("/urls", (req, res) => {
+  console.log(req.body); // Log the POST request body to the console
+  const newShortURL = generateRandomString();
+  const newLongURL = req.body.longURL;
+  urlDatabase[newShortURL] = newLongURL;
+  // console.log(urlDatabase); // Testing to see if the database is updated
+  res.redirect(`/urls/${newShortURL}`);
+});
+
 app.get("/register", (req, res) => {
   const templateVars = { username: req.cookies["username"] };
   res.render("register", templateVars);
+});
+
+app.post("/register", (req, res) => {
+  const user_id = generateRandomString();
+  users[user_id] = {
+    id : user_id,
+    email: req.body.email,
+    password: req.body.password
+  }
+  res.cookie("user_id", user_id);
+  console.log(users);
+  res.redirect("/urls");
 });
 
 app.post("/login", (req, res) => {
@@ -51,22 +89,9 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
 app.get("/urls/new", (req, res) => {
   const templateVars = { username: req.cookies["username"] };
   res.render("urls_new", templateVars);
-});
-
-app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  const newShortURL = generateRandomString();
-  const newLongURL = req.body.longURL;
-  urlDatabase[newShortURL] = newLongURL;
-  // console.log(urlDatabase); // Testing to see if the database is updated
-  res.redirect(`/urls/${newShortURL}`);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
