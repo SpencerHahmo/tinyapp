@@ -34,6 +34,11 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+app.get("/register", (req, res) => {
+  const templateVars = { username: req.cookies["username"] };
+  res.render("register", templateVars);
+});
+
 app.post("/login", (req, res) => {
   const username = req.body.username;
   // console.log(username); // Making sure the username variable gets updated on a new login
