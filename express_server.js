@@ -34,6 +34,13 @@ const users = {
   },
 };
 
+const getUserByEmail = (email) => {
+  for (user in users) {
+    if (users[user].email === email) return true;
+  }
+  return false;
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -61,31 +68,24 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const templateVars = { user_id: req.cookies["user_id"] };
+  const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]]? users[req.cookies["user_id"]].email : undefined };
   res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  const user_id = generateRandomString();
-  users[user_id] = {
-    id : user_id,
-    email: req.body.email,
-    password: req.body.password
-  }
-  res.cookie("user_id", user_id);
   
-  // The 2 parameters I need
-  // console.log(user_id); 
-  // console.log(users[user_id].email);
+  if (!req.body.email || !req.body.password) return res.status(400).send("No email/ password detected");
+  
+  const email = req.body.email;
+  if (getUserByEmail(email)) return res.status(400).send("There is already an account with that email");
 
-  /*
-  Passing the user Object to the _header
-  On our registration page, we are collecting an email and password from the user instead of a username.
-  With this switch, we're no longer going to set a username cookie; instead, we will set only a user_id cookie.
-  However, since we are currently passing the value of username from our cookie in to our _header partial,
-  we're going to have to make some changes so that it still renders properly:
-  */
-  
+  const user_id = generateRandomString();
+  users[user_id] = { id : user_id, email: req.body.email, password: req.body.password }
+
+  res.cookie("user_id", user_id);
+
+  console.log(users);
+
   res.redirect("/urls");
 });
 
@@ -102,7 +102,7 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user_id: req.cookies["user_id"] };
+  const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]]? users[req.cookies["user_id"]].email : null };
   res.render("urls_new", templateVars);
 });
 
@@ -113,7 +113,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user_id: req.cookies["user_id"] };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]]? users[req.cookies["user_id"]].email : null };
   res.render("urls_show", templateVars);
 });
 
