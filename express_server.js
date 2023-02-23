@@ -74,12 +74,17 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  const newShortURL = generateRandomString();
-  const newLongURL = req.body.longURL;
-  urlDatabase[newShortURL] = newLongURL;
-  // console.log(urlDatabase); // Testing to see if the database is updated
-  res.redirect(`/urls/${newShortURL}`);
+  // If the user is not logged in, informs them that they can't edit URLs
+  if (req.cookies["user_id"] === undefined) return res.status(401).send("You can't make a new url unless you're signed in.");
+  else {
+    // otherwise they can edit URLs
+    console.log(req.body); // Log the POST request body to the console
+    const newShortURL = generateRandomString();
+    const newLongURL = req.body.longURL;
+    urlDatabase[newShortURL] = newLongURL;
+    // console.log(urlDatabase); // Testing to see if the database is updated
+    res.redirect(`/urls/${newShortURL}`);
+  }
 });
 
 app.get("/register", (req, res) => {
@@ -145,8 +150,12 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
-  res.render("urls_new", templateVars);
+  // If the user is not logged in, redirects them to the login page
+  if (req.cookies["user_id"] === undefined) return res.status(401).redirect("/login");
+  else {
+    const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.post("/urls/:id/delete", (req, res) => {
