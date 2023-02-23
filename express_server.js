@@ -83,6 +83,11 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
+  if (req.cookies["user_id"] !== undefined) {
+    return res.redirect("/urls");
+  }
+  // Should redirect to /urls if already logged in
+  
   const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : undefined };
   res.render("register", templateVars);
 });
@@ -105,6 +110,11 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) =>{
+  if (req.cookies["user_id"] !== undefined) {
+    return res.redirect("/urls");
+  }
+  // Should redirect to /urls if already logged in
+  
   const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : undefined };
   res.render("login", templateVars);
 });
