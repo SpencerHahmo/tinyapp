@@ -89,6 +89,11 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/login", (req, res) =>{
+  const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]]? users[req.cookies["user_id"]].email : undefined };
+  res.render("login", templateVars);
+});
+
 app.post("/login", (req, res) => {
   const user_id = req.body.username;
   // console.log(username); // Making sure the username variable gets updated on a new login
