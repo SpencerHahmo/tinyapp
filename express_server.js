@@ -46,8 +46,8 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
+app.get("/urls", (req, res) => {  
+  const templateVars = { urls: urlDatabase, user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]]? users[req.cookies["user_id"]].email : null };
   res.render("urls_index", templateVars);
 });
 
@@ -61,7 +61,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { user_id: req.cookies["user_id"] };
   res.render("register", templateVars);
 });
 
@@ -73,24 +73,36 @@ app.post("/register", (req, res) => {
     password: req.body.password
   }
   res.cookie("user_id", user_id);
-  console.log(users);
+  
+  // The 2 parameters I need
+  // console.log(user_id); 
+  // console.log(users[user_id].email);
+
+  /*
+  Passing the user Object to the _header
+  On our registration page, we are collecting an email and password from the user instead of a username.
+  With this switch, we're no longer going to set a username cookie; instead, we will set only a user_id cookie.
+  However, since we are currently passing the value of username from our cookie in to our _header partial,
+  we're going to have to make some changes so that it still renders properly:
+  */
+  
   res.redirect("/urls");
 });
 
 app.post("/login", (req, res) => {
-  const username = req.body.username;
+  const user_id = req.body.username;
   // console.log(username); // Making sure the username variable gets updated on a new login
-  res.cookie('username', username);
+  res.cookie('user_id', user_id);
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { user_id: req.cookies["user_id"] };
   res.render("urls_new", templateVars);
 });
 
@@ -101,7 +113,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["username"] };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user_id: req.cookies["user_id"] };
   res.render("urls_show", templateVars);
 });
 

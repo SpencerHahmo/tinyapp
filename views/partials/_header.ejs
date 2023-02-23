@@ -19,14 +19,14 @@
       </div>
     </div>
     <div>
-      <% if (username === undefined) { %>
+      <% if (!email) { %>
         <form class="form-inline" action="/login" method="POST">
           <input type="text" name="username" placeholder="Username">
           <button type="submit" class="btn btn-outline-dark">Login</button>
         </form>
       <% } else { %>
         <form class="form-inline" action="/logout" method="POST">
-          <label>Logged in as: <%= username %>!</label>
+          <label>Logged in as: <%= email %>!</label>
           <button type="submit" class="btn btn-outline-dark">Logout</button>
         </form>
       <% } %>
