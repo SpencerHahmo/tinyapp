@@ -10,30 +10,6 @@ const generateRandomString = () => {
   return randomString;
 };
 
-app.set("view engine", "ejs");
-
-app.use(cookieParser());
-
-app.use(express.urlencoded({ extended: true }));
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
-};
-
 const getUserByEmail = (email) => {
   for (const user in users) {
     if (users[user].email === email) return true;
@@ -56,6 +32,30 @@ const getUserID = (email, password) => {
   }
 };
 
+const urlDatabase = {
+  "b2xVn2": "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com"
+};
+
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+app.set("view engine", "ejs");
+
+app.use(cookieParser());
+
+app.use(express.urlencoded({ extended: true }));
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -76,29 +76,25 @@ app.get("/urls", (req, res) => {
 app.post("/urls", (req, res) => {
   // If the user is not logged in, informs them that they can't edit URLs
   if (req.cookies["user_id"] === undefined) return res.status(401).send("You can't make a new url unless you're signed in.");
-  else {
-    // otherwise they can edit URLs
-    console.log(req.body); // Log the POST request body to the console
-    const newShortURL = generateRandomString();
-    const newLongURL = req.body.longURL;
-    urlDatabase[newShortURL] = newLongURL;
-    // console.log(urlDatabase); // Testing to see if the database is updated
-    res.redirect(`/urls/${newShortURL}`);
-  }
+  
+  // console.log(req.body); // Log the POST request body to the console
+  const newShortURL = generateRandomString();
+  const newLongURL = req.body.longURL;
+  urlDatabase[newShortURL] = newLongURL;
+  // console.log(urlDatabase); // Testing to see if the database is updated
+  res.redirect(`/urls/${newShortURL}`);
 });
 
 app.get("/register", (req, res) => {
-  if (req.cookies["user_id"] !== undefined) {
-    return res.redirect("/urls");
-  }
   // Should redirect to /urls if already logged in
-  
+  if (req.cookies["user_id"] !== undefined) return res.redirect("/urls");
+    
   const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : undefined };
   res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  
+  // If the user doesn't enter an email and/ or username
   if (!req.body.email || !req.body.password) return res.status(400).send("No email/ password detected");
   
   const email = req.body.email;
@@ -109,16 +105,14 @@ app.post("/register", (req, res) => {
 
   res.cookie("user_id", user_id);
 
-  console.log(users);
+  // console.log(users); // Makeing sure users gets updated
 
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) =>{
-  if (req.cookies["user_id"] !== undefined) {
-    return res.redirect("/urls");
-  }
   // Should redirect to /urls if already logged in
+  if (req.cookies["user_id"] !== undefined) return res.redirect("/urls");
   
   const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : undefined };
   res.render("login", templateVars);
@@ -127,7 +121,7 @@ app.get("/login", (req, res) =>{
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  console.log("email", email, "PASSWORD", password);
+  // console.log("email", email, "PASSWORD", password); // Makes sure the values are what I expect
 
   if (getUserByEmail(email)) {
     // console.log("MATCHING EMAIL WITH DATABASE");
@@ -152,10 +146,9 @@ app.post("/logout", (req, res) => {
 app.get("/urls/new", (req, res) => {
   // If the user is not logged in, redirects them to the login page
   if (req.cookies["user_id"] === undefined) return res.status(401).redirect("/login");
-  else {
-    const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
-    res.render("urls_new", templateVars);
-  }
+  
+  const templateVars = { user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
+  res.render("urls_new", templateVars);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
@@ -165,8 +158,13 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
-  res.render("urls_show", templateVars);
+  for (const shortURL in urlDatabase) {
+    if (shortURL === req.params.id) {
+      const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user_id: req.cookies["user_id"], email: users[req.cookies["user_id"]] ? users[req.cookies["user_id"]].email : null };
+      return res.render("urls_show", templateVars);
+    }
+  }
+  return res.status(404).send("The short URL you entered does not exist.");
 });
 
 app.post("/urls/:id", (req, res) => {
