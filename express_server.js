@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
-// const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const express = require("express");
+const { getUserByEmail, getUserPassword, getUserID } = require("./helpers");
 const app = express();
 const PORT = 8080;
 
@@ -10,28 +10,6 @@ const generateRandomString = () => {
   let randomString = "";
   while (randomString.length < 6) randomString += characters.charAt(Math.floor(Math.random() * characters.length));
   return randomString;
-};
-
-const getUserByEmail = (email) => {
-  for (const user in users) {
-    if (users[user].email === email) return true;
-  }
-  return false;
-};
-
-const getUserPassword = (password) => {
-  for (const user in users) {
-    if (bcrypt.compareSync(password, users[user].password)) return true;
-  }
-  return false;
-};
-
-const getUserID = (email, password) => {
-  for (const user in users) {
-    if (users[user].email === email) {
-      if (bcrypt.compareSync(password, users[user].password)) return users[user].id;
-    }
-  }
 };
 
 const urlsForUser = (id) => {
@@ -43,11 +21,6 @@ const urlsForUser = (id) => {
   }
   return usersURLS;
 };
-
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
 
 const urlDatabase = {
   b6UTxQ: {
@@ -80,7 +53,6 @@ const users = {
 
 app.set("view engine", "ejs");
 
-// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ['admin', 'key1']
@@ -132,7 +104,7 @@ app.post("/register", (req, res) => {
   if (!req.body.email || !req.body.password) return res.status(400).send("No email/ password detected");
   
   const email = req.body.email;
-  if (getUserByEmail(email)) return res.status(400).send("There is already an account with that email");
+  if (getUserByEmail(email, users)) return res.status(400).send("There is already an account with that email");
 
   const userID = generateRandomString();
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
@@ -158,11 +130,11 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
   // console.log("email", email, "PASSWORD", password); // Makes sure the values are what I expect
 
-  if (getUserByEmail(email)) {
+  if (getUserByEmail(email, users)) {
     // console.log("MATCHING EMAIL WITH DATABASE");
-    if (getUserPassword(password)) {
+    if (getUserPassword(password, users)) {
       // console.log("MATCHING PASSWORD WITH EMAIL");
-      const user = getUserID(email, password);
+      const user = getUserID(email, password, users);
       // console.log(user);
       req.session["user_id"] = user;
 
@@ -196,16 +168,12 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  if (!req.session["user_id"]) return res.status(400).send("You must be signed in in order to view a shortened URLs page.");
-  const userURLS = urlsForUser(req.session["user_id"]);
-  for (const key in userURLS) {
-    if (key === req.params.id) {
-      const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
-      return res.render("urls_show", templateVars);
-    }
-    if (urlDatabase[key].userID !== req.session["user_id"]) return res.status(401).send("This URL is not associated with your account.");
-  }
-  return res.status(404).send("The short URL you entered does not exist.");
+  const id = req.params.id;
+  if (!req.session["user_id"]) return res.status(400).send("You must be signed in in order to view a shortened URL page.");
+  if (req.session["user_id"] !== urlDatabase[id].userID) return res.status(400).send("This URL is not associated with your account.");
+  if (!urlDatabase[id]) return res.status(404).send("The short URL you entered does not exist.");
+  const templateVars = { id: id, longURL: urlDatabase[id].longURL, userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
+  return res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:id", (req, res) => {
