@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-
 const { assert } = require('chai');
 const { getUserByEmail, getUserPassword, getUserID} = require('../helpers.js');
 
@@ -44,19 +43,26 @@ describe('getUserByEmail', function() {
     assert.strictEqual(test, expectedResult);
   });
 
-  it("should return undefined when entering a email and password that don't match anything in the database", () => {
+  it('should return false if you enter the incorrect password', () => {
+    const password = "123";
+    const test = getUserPassword(password, testUsers);
+    const expectedResult = false;
+
+    assert.isFalse(test, expectedResult);
+  });
+
+  it("should return undefined when entering an email and password that don't match anything in the database", () => {
     const password = "painting";
     const email = "bobross@hotmail.com";
 
     assert.isUndefined(getUserID(email, password, testUsers));
   });
 
-  it("should return the user id when entering a email and password that match an entry in the database", () => {
+  it("should return the user id when entering an email and password that match an entry in the database", () => {
     const password = "dishwasher-funk";
     const email = "user2@example.com";
     const expectedUserID = "user2RandomID";
 
     assert.strictEqual(getUserID(email, password, testUsers), expectedUserID);
   });
-  
 });

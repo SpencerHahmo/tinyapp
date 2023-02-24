@@ -1,6 +1,6 @@
 <header>
-  <nav class="navbar navbar-expand-md navbar-dark bg-success">
-    <a class="navbar-brand" href="/urls">TinyApp</a>
+  <nav class="navbar navbar-expand-md navbar-dark bg-info">
+    <a class="navbar-brand" href="/urls"><b class="text-dark">Tiny</b><b>App</b></a>
     <button
       class="navbar-toggler"
       type="button"
@@ -14,22 +14,26 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
       <div class="navbar-nav">
-        <a class="nav-item nav-link" href="/urls">My URLs</a>
-        <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <a class="nav-item nav-link" href="/urls"><b class="text-white">My URLs</b></a>
+        <a class="nav-item nav-link" href="/urls/new"><b class="text-white">Create New URL</b></a>
       </div>
     </div>
     <div>
       <% if (!email) { %>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav">
-            <a class="nav-item nav-link" href="/register">Register</a>
-            <a class="nav-item nav-link" href="/login">Login</a>
+            <a class="nav-item nav-link text-secondary" href="/register"><b>Register</b></a>
+            <a class="nav-item nav-link text-secondary" href="/login"><b>Login</b></a>
           </div>
         </div>
       <% } else { %>
         <form class="form-inline" action="/logout" method="POST">
-          <label>Logged in as: <%= email %>!</label>
-          <button type="submit" class="btn btn-outline-dark">Logout</button>
+          <div>
+            <label>Logged in as: <%= email %></label>
+          </div>
+          <div class="col">
+            <button type="submit" class="btn btn-dark"><b>Logout</b></button>
+          </div>
         </form>
       <% } %>
     </div>

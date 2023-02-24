@@ -12,6 +12,7 @@ const generateRandomString = () => {
   return randomString;
 };
 
+// Creates and fills an object with URLs that the current user has created
 const urlsForUser = (id) => {
   let usersURLS = {};
   for (const key in urlDatabase) {
@@ -61,7 +62,8 @@ app.use(cookieSession({
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (!req.session["user_id"]) return res.redirect("/login");
+  res.redirect("/urls");
 });
 
 app.get("/hello", (req, res) => {
@@ -75,53 +77,48 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   if (!req.session["user_id"]) return res.status(401).send("You must be signed in in order to view your shortened URLs");
   const userURLS = urlsForUser(req.session["user_id"]);
-  const templateVars = { urls: userURLS, userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : null };
+  const templateVars = { urls: userURLS, userID: req.session["user_id"], email: users[req.session["user_id"]].email };
   res.render("urls_index", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  // If the user is not logged in, informs them that they can't edit URLs
-  if (req.session["user_id"] === undefined) return res.status(401).send("You can't make a new URL unless you're signed in.");
-  
-  // console.log(req.body); // Log the POST request body to the console
+  if (!req.session["user_id"]) return res.status(401).send("You can't make a new URL unless you're signed in.");
   const newShortURL = generateRandomString();
   const newLongURL = req.body.longURL;
   urlDatabase[newShortURL] = { longURL: newLongURL, userID: req.session["user_id"]};
-  // console.log(urlDatabase); // Testing to see if the database is updated
   res.redirect(`/urls/${newShortURL}`);
 });
 
 app.get("/register", (req, res) => {
   // Should redirect to /urls if already logged in
-  if (req.session["user_id"] !== undefined) return res.redirect("/urls");
-    
-  const templateVars = { userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
+  if (req.session["user_id"]) return res.redirect("/urls");
+
+  const templateVars = { userID: req.session["user_id"], email: undefined };
   res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  // If the user doesn't enter an email and/ or username
-  if (!req.body.email || !req.body.password) return res.status(400).send("No email/ password detected");
-  
   const email = req.body.email;
-  if (getUserByEmail(email, users)) return res.status(400).send("There is already an account with that email");
+  const password = req.body.password;
+  // If the user doesn't enter an email and/ or username
+  if (!email || !password) return res.status(400).send("No email/ password detected");
 
+  if (getUserByEmail(email, users)) return res.status(400).send("There is already an account registered with that email");
+  
   const userID = generateRandomString();
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-  users[userID] = { id : userID, email: req.body.email, password: hashedPassword };
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  users[userID] = { id : userID, email: email, password: hashedPassword };
 
   req.session["user_id"] = userID;
-
-  // console.log(users); // Makeing sure users gets updated
 
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) =>{
   // Should redirect to /urls if already logged in
-  if (req.session["user_id"] !== undefined) return res.redirect("/urls");
+  if (req.session["user_id"]) return res.redirect("/urls");
   
-  const templateVars = { userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
+  const templateVars = { userID: req.session["user_id"], email: undefined };
   res.render("login", templateVars);
 });
 
@@ -131,30 +128,28 @@ app.post("/login", (req, res) => {
   // console.log("email", email, "PASSWORD", password); // Makes sure the values are what I expect
 
   if (getUserByEmail(email, users)) {
-    // console.log("MATCHING EMAIL WITH DATABASE");
     if (getUserPassword(password, users)) {
-      // console.log("MATCHING PASSWORD WITH EMAIL");
       const user = getUserID(email, password, users);
-      // console.log(user);
       req.session["user_id"] = user;
 
       return res.redirect("/urls");
     }
     return res.status(403).send("The data entered does not match the database");
   }
-  return res.status(403).send("A user with that email can not be found");
+  return res.status(403).send("There is no user in the database registered with that email");
 });
 
 app.post("/logout", (req, res) => {
+  // Clears all cookies
   req.session = null;
   res.redirect("/login");
 });
 
 app.get("/urls/new", (req, res) => {
   // If the user is not logged in, redirects them to the login page
-  if (req.session["user_id"] === undefined) return res.status(401).redirect("/login");
+  if (!req.session["user_id"]) return res.status(401).redirect("/login");
   
-  const templateVars = { userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
+  const templateVars = { userID: req.session["user_id"], email: users[req.session["user_id"]].email };
   res.render("urls_new", templateVars);
 });
 
@@ -170,24 +165,32 @@ app.post("/urls/:id/delete", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   if (!req.session["user_id"]) return res.status(400).send("You must be signed in in order to view a shortened URL page.");
-  if (req.session["user_id"] !== urlDatabase[id].userID) return res.status(400).send("This URL is not associated with your account.");
   if (!urlDatabase[id]) return res.status(404).send("The short URL you entered does not exist.");
-  const templateVars = { id: id, longURL: urlDatabase[id].longURL, userID: req.session["user_id"], email: users[req.session["user_id"]] ? users[req.session["user_id"]].email : undefined };
+  if (req.session["user_id"] !== urlDatabase[id].userID) return res.status(400).send("This URL is not associated with your account.");
+  const templateVars = { id: id, longURL: urlDatabase[id].longURL, userID: req.session["user_id"], email: users[req.session["user_id"]].email };
   return res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
+  if (!req.session["user_id"]) return res.status(401).send("You need to be signed in in order to edit a short URL.");
+  if (req.session["user_id"] !== urlDatabase[id].userID) return res.status(403).send("This URL is not associated with your account.");
   const newLongURL = req.body.newLongURL;
   urlDatabase[id] = { longURL: newLongURL, userID: req.session["user_id"] };
   res.redirect("/urls");
 });
 
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id].longURL;
-  res.redirect(longURL);
+  const id = req.params.id;
+  for (const url in urlDatabase) {
+    if (id === url) {
+      const longURL = urlDatabase[req.params.id].longURL;
+      return res.redirect(longURL);
+    }
+  }
+  res.status(400).send("There is URL to go to.");
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`TinyApp listening on port ${PORT}!`);
 });
